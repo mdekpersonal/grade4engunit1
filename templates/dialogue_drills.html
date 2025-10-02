@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="header">
+    <div class="emoji">💬</div>
+    <h1>{{ data.title }}</h1>
+    <h2>{{ unit_data.unit_name }} - Chat with Friends!</h2>
+    <div class="emoji">🎭✨</div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <a href="/" class="btn btn-outline-primary btn-lg">🏠 Back to Home</a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12 text-center">
+        <!-- Audio controls for dialogues -->
+        <div class="mt-2">
+            <small class="text-muted">🔊 Practice speaking along with the dialogues!</small>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="text-center mb-4">
+            <h3 style="color: #2d3436;">🎪 Practice Real Conversations! 🎪</h3>
+            <p style="font-size: 1.1rem; color: #636e72;">Use the carousel below to practice each dialogue!</p>
+        </div>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div id="dialogue-carousel" class="carousel-container" style="position: relative; min-height: 250px; background: #f8f9fa; border: 2px dashed #dee2e6; text-align: center; padding: 20px;">
+            <p>Press Start to begin the dialogue carousel...</p>
+        </div>
+        <div class="text-center mt-4">
+            <button class="btn btn-success btn-lg mx-2" id="dialogue-carousel-start">▶️ Start</button>
+            <button class="btn btn-warning btn-lg mx-2" id="dialogue-carousel-pause">⏸️ Pause</button>
+            <button class="btn btn-danger btn-lg mx-2" id="dialogue-carousel-stop">⏹️ Stop</button>
+        </div>
+    </div>
+</div>
+
+<!-- Audio elements for dialogue carousel -->
+<audio id="dialogue-carousel-audio" preload="auto">
+    <source src="{{ url_for('static', filename='media/dialogue_carousel_audio.wav') }}" type="audio/wav">
+    <source src="{{ url_for('static', filename='media/dialogue_carousel_audio.mp3') }}" type="audio/mpeg">
+    Your browser does not support audio.
+</audio>
+
+<!-- Individual dialogue audio files -->
+{% for card in data['cards'] %}
+<audio id="dialogue-audio-{{ card.id }}" preload="auto">
+    <source src="{{ url_for('static', filename='media/' + card.id + '_audio.wav') }}" type="audio/wav">
+    <source src="{{ url_for('static', filename='media/' + card.id + '_audio.mp3') }}" type="audio/mpeg">
+    Your browser does not support audio.
+</audio>
+{% endfor %}
+
+<!-- Debug info removed for cleaner view -->
+
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="text-center">
+            <div style="background: linear-gradient(45deg, #ffeaa7, #fdcb6e); padding: 25px; border-radius: 20px;">
+                <h4 style="color: #2d3436;">🏆 Great Job Practicing! 🏆</h4>
+                <p style="margin: 0; color: #636e72;">Keep practicing these dialogues every day to become a super English speaker!</p>
+                <div style="margin: 15px 0; font-size: 2rem;">🌟 ⭐ 🎉 ⭐ 🌟</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- JSON debug removed -->
+
+<script type="application/json" id="dialogue-carousel-data">
+{{ data['cards'] | tojson | safe }}
+</script>
+<script>
+    // Carousel logic for dialogues
+    let items = [];
+    console.log('Starting dialogue carousel initialization...');
+    
+    try {
+        const dataElement = document.getElementById('dialogue-carousel-data');
+        console.log('Data element:', dataElement);
+        
+        if (dataElement) {
+            const rawContent = dataElement.textContent;
+            console.log('Raw data content:', rawContent);
+            console.log('Raw content length:', rawContent.length);
+            
+            if (rawContent && rawContent.trim()) {
+                items = JSON.parse(rawContent.trim());
+                console.log('Successfully parsed items:', items);
+                console.log('Number of items:', items.length);
+            } else {
+                console.error('Empty or null content');
+            }
+        } else {
+            console.error('Data element not found');
+        }
+    } catch (e) {
+        console.error('Error parsing JSON:', e);
+        console.error('Error details:', e.message);
+    }
+    
+    let currentIndex = 0;
+    let carouselInterval = null;
+    let isPaused = false;
+    let audio = document.getElementById('dialogue-carousel-audio');
+    let audioPlaying = false;
+    let carouselSpeed = 7000;
+    let autoAdvance = false;
+    let isPlayingCardAudio = false;
+
+    function renderCarouselItem(index) {
+        console.log('renderCarouselItem called with index:', index);
+        const container = document.getElementById('dialogue-carousel');
+        
+        if (!container) {
+            console.error('Container not found!');
+            return;
+        }
+        
+        if (!items || items.length === 0) {
+            container.innerHTML = '<div class="alert alert-warning">No dialogue items available</div>';
+            return;
+        }
+        
+        if (index >= items.length || index < 0) {
+            container.innerHTML = '<div class="alert alert-danger">Invalid item index: ' + index + '</div>';
+            return;
+        }
+        
+        const item = items[index];
+        console.log('Rendering item:', item);
+        
+        container.innerHTML = `
+            <div class="item-card" style="text-align: center; background: white; border-radius: 15px; padding: 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border-left: 5px solid #fd79a8;">
+                <h4 style="color: #2d3436; margin-bottom: 15px;">${item.title}</h4>
+                <div style="margin: 20px 0;">
+                    <h6>Dialogue:</h6>
+                    ${item.lines.map(line => {
+                        return `<p><strong>Speaker ${line.speaker}:</strong> "${line.text}"</p>`;
+                    }).join('')}
+                </div>
+                <small class="text-muted">Dialogue ${index + 1} of ${items.length}</small>
+            </div>
+        `;
+    }
+
+    // Play per-card audio for dialogues and advance carousel after audio ends
+    function playDialogueAudio(id, advanceAfter = false) {
+        const audioEl = document.getElementById('dialogue-audio-' + id);
+        if (audioEl) {
+            try {
+                audioEl.currentTime = 0;
+                audioEl.play().catch(() => {
+                    // If audio fails, advance carousel if needed
+                    if (advanceAfter && currentIndex < items.length - 1) {
+                        currentIndex++;
+                        renderCarouselItem(currentIndex);
+                        playDialogueAudio(items[currentIndex].id, true);
+                    }
+                });
+                isPlayingCardAudio = true;
+                if (advanceAfter) {
+                    audioEl.onended = function() {
+                        isPlayingCardAudio = false;
+                        if (autoAdvance && currentIndex < items.length - 1) {
+                            currentIndex++;
+                            renderCarouselItem(currentIndex);
+                            playDialogueAudio(items[currentIndex].id, true);
+                        } else {
+                            autoAdvance = false;
+                        }
+                    };
+                } else {
+                    audioEl.onended = function() {
+                        isPlayingCardAudio = false;
+                    };
+                }
+            } catch (e) {
+                // If audio fails, advance carousel if needed
+                if (advanceAfter && currentIndex < items.length - 1) {
+                    currentIndex++;
+                    renderCarouselItem(currentIndex);
+                    playDialogueAudio(items[currentIndex].id, true);
+                }
+            }
+        } else if (advanceAfter && currentIndex < items.length - 1) {
+            currentIndex++;
+            renderCarouselItem(currentIndex);
+            playDialogueAudio(items[currentIndex].id, true);
+        }
+    }
+
+    function startCarousel() {
+        if (autoAdvance || isPlayingCardAudio) return;
+        autoAdvance = true;
+        currentIndex = 0; // Start with first card
+        renderCarouselItem(currentIndex);
+        playDialogueAudio(items[currentIndex].id, false);
+
+        // Card 1: 18 seconds, Card 2: 27 seconds, Card 3: 25 seconds, Card 4: stays visible
+        setTimeout(() => {
+            if (autoAdvance && currentIndex === 0) {
+                currentIndex = 1;
+                if (currentIndex < items.length) {
+                    renderCarouselItem(currentIndex);
+                    playDialogueAudio(items[currentIndex].id, false);
+                    console.log('Switched to card 2 after 18 seconds');
+                    setTimeout(() => {
+                        if (autoAdvance && currentIndex === 1) {
+                            currentIndex = 2;
+                            if (currentIndex < items.length) {
+                                renderCarouselItem(currentIndex);
+                                playDialogueAudio(items[currentIndex].id, false);
+                                console.log('Switched to card 3 after 27 seconds');
+                                setTimeout(() => {
+                                    if (autoAdvance && currentIndex === 2) {
+                                        currentIndex = 3;
+                                        if (currentIndex < items.length) {
+                                            renderCarouselItem(currentIndex);
+                                            playDialogueAudio(items[currentIndex].id, false);
+                                            console.log('Switched to card 4 after 25 seconds');
+                                            // Card 4 will now stay visible
+                                        }
+                                    }
+                                }, 25000); // 25 seconds for card 3
+                            }
+                        }
+                    }, 27000); // 27 seconds for card 2
+                }
+            }
+        }, 18000); // 18 seconds for card 1
+    }
+
+    function startCarouselAndAudio() {
+        console.log('Start button pressed - starting carousel and audio');
+        startCarousel();
+        // Start the main section audio
+        const mainAudio = document.getElementById('dialogue-carousel-audio');
+        if (mainAudio) {
+            mainAudio.currentTime = 0;
+            mainAudio.play().catch(e => console.log('Audio autoplay blocked:', e));
+            console.log('Main audio started');
+        }
+    }
+
+    function pauseCarousel() {
+        autoAdvance = false;
+        isPlayingCardAudio = false;
+        // Pause main audio
+        const mainAudio = document.getElementById('dialogue-carousel-audio');
+        if (mainAudio) {
+            mainAudio.pause();
+        }
+        console.log('Carousel paused');
+    }
+
+    function stopCarousel() {
+        autoAdvance = false;
+        isPlayingCardAudio = false;
+        // Stop main audio
+        const mainAudio = document.getElementById('dialogue-carousel-audio');
+        if (mainAudio) {
+            mainAudio.pause();
+            mainAudio.currentTime = 0;
+        }
+        // Reset to initial state
+        currentIndex = 0;
+        const container = document.getElementById('dialogue-carousel');
+        if (container) {
+            container.innerHTML = '<p>Press Start to begin the dialogue carousel...</p>';
+        }
+        console.log('Carousel stopped and reset');
+    }
+
+    // Wait for DOM to be fully loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded, initializing carousel...');
+        
+        // Set up event listeners
+        document.getElementById('dialogue-carousel-start').addEventListener('click', startCarouselAndAudio);
+        document.getElementById('dialogue-carousel-pause').addEventListener('click', pauseCarousel);
+        document.getElementById('dialogue-carousel-stop').addEventListener('click', stopCarousel);
+        
+        // Don't render initially - wait for Start button
+        console.log('Carousel initialized. Items length:', items.length);
+        if (items.length === 0) {
+            console.error('No items to display');
+            const container = document.getElementById('dialogue-carousel');
+            if (container) {
+                container.innerHTML = '<div class="alert alert-warning">No dialogue items found.</div>';
+            }
+        }
+    });
+</script>
+{% endblock %}

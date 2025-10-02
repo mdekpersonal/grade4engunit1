@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: grade6-english-app
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    plan: free
+    region: oregon
+    branch: main
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0

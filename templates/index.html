@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="header">
+    <div class="emoji">🌍</div>
+    <h1 style="font-size:2.5rem; font-weight:bold; color:#0984e3;">EXCELLENCE JUNIOR SCHOOL</h1>
+    <div style="font-size:1.5rem; font-weight:bold; color:#00b894; margin-bottom:10px;">THE B.Y.O.O METHOD</div>
+    <h1>{{ unit_data.title }}</h1>
+    <p>Grade {{ unit_data.grade_level }}, Unit {{ unit_data.unit_number }}</p>
+    <h2 style="font-size:2rem; color:#636e72;">{{ unit_data.unit_name }}</h2>
+    <h3 style="font-size:1.7rem; color:#636e72;">GRADE 4</h3>
+    <div class="emoji">📚✨</div>
+</div>
+
+
+<div class="row justify-content-center">
+    <div class="col-md-4 mb-4">
+        <div class="activity-card">
+            <span class="emoji">🌍�🧺</span>
+            <h3>Vocabulary Highlights</h3>
+            <p>Learn countries, numbers, and household chores with fun activities!</p>
+            <a href="/vocabulary" class="btn-fun">Explore Words! 🎯</a>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="activity-card" style="background: linear-gradient(135deg, #fd79a8 0%, #e84393 100%);">
+            <span class="emoji">💬</span>
+            <h3>Mini Dialogues</h3>
+            <p>Practice conversations about origins, age, numbers, and chores!</p>
+            <a href="/dialogue-drills" class="btn-fun">Start Chatting! 🎭</a>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="text-center">
+            <h3 style="color: #2d3436;">🎉 Welcome to Your English Journey! 🎉</h3>
+            <p style="font-size: 1.2rem; color: #636e72; margin-top: 20px;">
+                Choose an activity above to start learning about our amazing world! 
+                Each activity will help you speak English better and have fun doing it! 🌟
+            </p>
+            <div style="margin: 30px 0;">
+                <span style="font-size: 2rem;">🏆 🎪 🎨 🎵 🎮</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+    <p>🌟 Have fun learning English! Remember: Practice makes perfect! 🌟</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Add some fun interactive elements
+    document.querySelectorAll('.activity-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-10px) scale(1.02)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+        });
+    });
+
+    // Add clicking sound effect simulation
+    document.querySelectorAll('.btn-fun').forEach(btn => {
+        btn.addEventListener('click', function() {
+            this.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                this.style.transform = 'scale(1.05)';
+            }, 100);
+        });
+    });
+</script>
+{% endblock %}

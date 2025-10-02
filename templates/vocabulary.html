@@ -1,0 +1,836 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="header">
+    <div class="emoji">{{ data.icon }}</div>
+    <h1>{{ data.title }}</h1>
+    <p>Grade {{ unit_data.grade_level }}, Unit {{ unit_data.unit_number }}</p>
+    <div class="emoji">📚✨</div>
+</div>
+
+<!-- Carousel Controls -->
+<div class="row mb-4">
+    <div class="col-12 text-center">
+        <div class="carousel-controls">
+            <button class="btn btn-primary mx-2" onclick="showCarousel(0)">🌎 Countries</button>
+            <button class="btn btn-warning mx-2" onclick="showCarousel(1)">🔢 Numbers</button>
+            <button class="btn btn-success mx-2" onclick="showCarousel(2)">🧹 Chores</button>
+        </div>
+        <div class="mt-3">
+            <button class="btn btn-info mx-2" id="carousel-prev" onclick="prevCarousel()">⬅️ Previous</button>
+            <button class="btn btn-info mx-2" id="carousel-next" onclick="nextCarousel()">Next ➡️</button>
+            <button class="btn btn-secondary mx-2" id="auto-play-btn" onclick="toggleAutoPlay()">▶️ Auto Play</button>
+        </div>
+    </div>
+</div>
+
+<!-- Three Horizontal Carousels Stacked Vertically -->
+{% for card in data.cards %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="horizontal-carousel carousel-{{ loop.index0 }}" id="carousel-{{ loop.index0 }}">
+            <!-- Carousel Header with Title and Controls -->
+            <div class="carousel-header-horizontal">
+                <div class="carousel-title-section">
+                    <h4>{{ card.title }}</h4>
+                    <div class="carousel-indicator" id="indicator-{{ loop.index0 }}">
+                        1 of {{ card['items']|length }}
+                    </div>
+                    <div class="carousel-timing">
+                        {% if loop.index0 == 0 %}
+                        ⏱️ 18sec total (1.5s/card)
+                        {% else %}
+                        ⏱️ 3sec per card
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="carousel-audio-section">
+                    <audio id="audio-{{ loop.index0 }}" preload="metadata" controls controlsList="nodownload">
+                        {% if loop.index0 == 0 %}
+                        <source src="/static/media/countries_audio.mp3" type="audio/mpeg">
+                        <source src="/static/media/countries_audio.wav" type="audio/wav">
+                        {% elif loop.index0 == 1 %}
+                        <source src="/static/media/numbers_audio.mp3" type="audio/mpeg">
+                        <source src="/static/media/numbers_audio.wav" type="audio/wav">
+                        {% else %}
+                        <source src="/static/media/chores_audio.mp3" type="audio/mpeg">
+                        <source src="/static/media/chores_audio.wav" type="audio/wav">
+                        {% endif %}
+                        Your browser does not support audio.
+                    </audio>
+                    <div class="audio-controls">
+                        <button class="btn-audio" data-carousel-id="{{ loop.index0 }}" data-action="play-audio">🔊 Play Audio</button>
+                        <button class="btn-audio-stop" data-carousel-id="{{ loop.index0 }}" data-action="stop-audio">⏹️ Stop</button>
+                    </div>
+                </div>
+                
+                <div class="carousel-controls-horizontal">
+                    <button class="btn-control start" data-carousel-id="{{ loop.index0 }}" data-action="start">▶️ Start</button>
+                    <button class="btn-control pause" data-carousel-id="{{ loop.index0 }}" data-action="pause">⏸️ Pause</button>
+                    <button class="btn-control stop" data-carousel-id="{{ loop.index0 }}" data-action="stop">⏹️ Stop</button>
+                </div>
+            </div>
+            
+            <!-- Horizontal Carousel Content -->
+            <div class="carousel-track-container carousel-bg-{{ loop.index0 }}">
+                <button class="carousel-nav-btn prev" data-carousel-id="{{ loop.index0 }}" data-action="prev" id="prev-{{ loop.index0 }}">❮</button>
+                
+                <div class="carousel-track" id="carousel-track-{{ loop.index0 }}">
+                    {% set outer_index = loop.index0 %}
+                    {% for item in card['items'] %}
+                    <div class="vocab-card {% if outer_index == 2 %}chores-card{% endif %}" data-index="{{ loop.index0 }}">
+                        {% if outer_index == 2 %}
+                            <!-- Special layout for chores with large emojis -->
+                            <div class="chores-emoji">{{ item.split(' ')[0] }}</div>
+                            <div class="chores-text">{{ item.split(' ', 1)[1] }}</div>
+                        {% else %}
+                            <div class="vocab-emoji emoji-{{ outer_index }}"></div>
+                            <div class="vocab-text">{{ item }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <button class="carousel-nav-btn next" data-carousel-id="{{ loop.index0 }}" data-action="next" id="next-{{ loop.index0 }}">❯</button>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="carousel-progress-horizontal">
+                <div class="progress-bar-horizontal" id="progress-{{ loop.index0 }}"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+
+
+<div class="row mt-4">
+    <div class="col-12 text-center">
+        <a href="/" class="btn-fun" style="background: linear-gradient(135deg, #636e72 0%, #2d3436 100%);">
+            🏠 Back to Home
+        </a>
+    </div>
+</div>
+
+<style>
+/* Horizontal Carousel Styles */
+.horizontal-carousel {
+    background: #f8f9fa;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.carousel-header-horizontal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(255,255,255,0.7);
+    border-radius: 15px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.carousel-title-section h4 {
+    margin: 0;
+    font-size: 1.4rem;
+    color: #2d3436;
+    font-weight: bold;
+}
+
+.carousel-indicator {
+    font-size: 0.9rem;
+    color: #636e72;
+    margin-top: 5px;
+}
+
+.carousel-timing {
+    font-size: 0.8rem;
+    color: #00b894;
+    margin-top: 3px;
+    font-weight: bold;
+    background: rgba(0, 184, 148, 0.1);
+    padding: 2px 8px;
+    border-radius: 10px;
+    display: inline-block;
+}
+
+.carousel-audio-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.carousel-audio-section audio {
+    width: 250px;
+    height: 35px;
+    border-radius: 15px;
+    background: rgba(255,255,255,0.9);
+}
+
+.audio-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-audio {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #fd79a8, #e84393);
+    color: white;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.btn-audio:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(232, 67, 147, 0.4);
+}
+
+.btn-audio-stop {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #e17055, #d63031);
+    color: white;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.btn-audio-stop:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(214, 48, 49, 0.4);
+}
+
+.carousel-controls-horizontal {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-control {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    min-width: 80px;
+}
+
+.btn-control.start {
+    background: linear-gradient(135deg, #00b894, #00a085);
+    color: white;
+}
+
+.btn-control.pause {
+    background: linear-gradient(135deg, #fdcb6e, #e17055);
+    color: white;
+}
+
+.btn-control.stop {
+    background: linear-gradient(135deg, #e17055, #d63031);
+    color: white;
+}
+
+.btn-control:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.carousel-track-container {
+    position: relative;
+    border-radius: 15px;
+    padding: 20px 60px;
+    overflow: hidden;
+    min-height: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.carousel-track {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+}
+
+.vocab-card {
+    min-width: 100%;
+    width: 100%;
+    max-width: 600px;
+    padding: 40px;
+    background: rgba(255,255,255,0.95);
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.vocab-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.vocab-emoji {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    display: block;
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-10px);
+    }
+    60% {
+        transform: translateY(-5px);
+    }
+}
+
+.vocab-text {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #2d3436;
+    line-height: 1.4;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Special styling for chores carousel */
+.chores-card {
+    background: linear-gradient(135deg, #00b894, #00a085) !important;
+    color: white;
+    min-height: 200px;
+}
+
+.chores-emoji {
+    font-size: 6rem;
+    margin-bottom: 20px;
+    display: block;
+    animation: pulse 2s infinite;
+    filter: drop-shadow(0 0 10px rgba(255,255,255,0.5));
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+.chores-text {
+    font-size: 2.2rem;
+    font-weight: bold;
+    color: white;
+    line-height: 1.4;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    text-transform: capitalize;
+}
+
+.carousel-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.9);
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+.carousel-nav-btn:hover {
+    background: white;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.carousel-nav-btn.prev {
+    left: 10px;
+}
+
+.carousel-nav-btn.next {
+    right: 10px;
+}
+
+.carousel-progress-horizontal {
+    margin-top: 15px;
+    height: 8px;
+    background: rgba(0,0,0,0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar-horizontal {
+    height: 100%;
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.5s ease;
+}
+
+.carousel-controls button {
+    margin: 5px;
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-weight: bold;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.carousel-controls button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.carousel-indicator {
+    position: absolute;
+    bottom: 15px;
+    right: 20px;
+    color: white;
+    background: rgba(0,0,0,0.3);
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.9rem;
+}
+
+.slide-enter {
+    opacity: 0;
+    transform: translateX(100px);
+}
+
+.slide-enter-active {
+    opacity: 1;
+    transform: translateX(0);
+    transition: all 0.5s ease-in-out;
+}
+
+.slide-exit {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.slide-exit-active {
+    opacity: 0;
+    transform: translateX(-100px);
+    transition: all 0.5s ease-in-out;
+}
+
+/* Carousel-specific backgrounds */
+.carousel-bg-0 {
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%) !important;
+}
+
+.carousel-bg-1 {
+    background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%) !important;
+}
+
+.carousel-bg-2 {
+    background: linear-gradient(135deg, #00b894 0%, #00a085 100%) !important;
+}
+
+/* Emoji-specific styles */
+.emoji-0::before {
+    content: '🌍';
+}
+
+.emoji-1::before {
+    content: '💯';
+}
+
+.emoji-2::before {
+    content: '🧽';
+}
+</style>
+
+<script>
+// Horizontal Carousel Controller
+class HorizontalCarousel {
+    constructor(carouselId) {
+        this.id = carouselId;
+        this.currentIndex = 0;
+        this.isPlaying = false;
+        this.interval = null;
+        this.cards = document.querySelectorAll(`#carousel-track-${carouselId} .vocab-card`);
+        this.totalItems = this.cards.length;
+        this.cardWidth = 100; // 100% width for single card display
+        this.visibleCards = 1; // Always show only 1 card at a time
+        this.maxIndex = this.totalItems - 1; // Can go through all cards
+        
+        // Set different timing for each carousel to sync with audio length
+        if (carouselId === 0) {
+            // Countries carousel: 18 seconds total ÷ 12 cards = 1.5 seconds per card
+            this.intervalTime = 1500; // 1.5 seconds per card
+            this.totalDuration = 18000; // 18 seconds total
+        } else if (carouselId === 1) {
+            // Numbers carousel: 18 seconds total ÷ 8 cards = 2.25 seconds per card
+            this.intervalTime = 2250; // 2.25 seconds per card
+            this.totalDuration = 18000; // 18 seconds total
+        } else {
+            // Chores carousel: 22 seconds total ÷ 8 cards = 2.75 seconds per card
+            this.intervalTime = 2750; // 2.75 seconds per card
+            this.totalDuration = 22000; // 22 seconds total
+        }
+        
+        this.init();
+    }
+    
+    init() {
+        this.updateDisplay();
+        this.updateIndicator();
+        this.updateProgress();
+        
+        // Set initial position
+        const track = document.getElementById(`carousel-track-${this.id}`);
+        if (track) {
+            track.style.transform = 'translateX(0px)';
+        }
+    }
+    
+    updateDisplay() {
+        // Hide all cards first
+        this.cards.forEach((card, index) => {
+            card.style.display = 'none';
+        });
+        
+        // Show only the current card
+        if (this.cards[this.currentIndex]) {
+            this.cards[this.currentIndex].style.display = 'flex';
+        }
+    }
+    
+    updateIndicator() {
+        const indicator = document.getElementById(`indicator-${this.id}`);
+        if (indicator) {
+            indicator.textContent = `${this.currentIndex + 1} of ${this.totalItems}`;
+        }
+    }
+    
+    updateProgress() {
+        const progressBar = document.getElementById(`progress-${this.id}`);
+        if (progressBar && this.totalItems > 0) {
+            const percentage = ((this.currentIndex + 1) / this.totalItems) * 100;
+            progressBar.style.width = percentage + '%';
+            
+            // Set color based on carousel type
+            if (this.id === 0) {
+                progressBar.style.background = 'linear-gradient(135deg, #74b9ff, #0984e3)';
+            } else if (this.id === 1) {
+                progressBar.style.background = 'linear-gradient(135deg, #fdcb6e, #e17055)';
+            } else {
+                progressBar.style.background = 'linear-gradient(135deg, #00b894, #00a085)';
+            }
+        }
+    }
+    
+    next() {
+        this.currentIndex = (this.currentIndex + 1) % this.totalItems;
+        this.updateDisplay();
+        this.updateIndicator();
+        this.updateProgress();
+    }
+    
+    prev() {
+        this.currentIndex = (this.currentIndex - 1 + this.totalItems) % this.totalItems;
+        this.updateDisplay();
+        this.updateIndicator();
+        this.updateProgress();
+    }
+    
+    start() {
+        if (this.isPlaying) return;
+        
+        this.isPlaying = true;
+        this.currentIndex = 0; // Start from beginning
+        this.updateDisplay();
+        this.updateIndicator();
+        this.updateProgress();
+        
+        // Start the audio for this carousel (from carousel start)
+        playAudio(this.id, true);
+        
+        // For all carousels, set up synchronized cycling with their specific timing
+        if (this.id === 0 || this.id === 1 || this.id === 2) {
+            let cardCount = 0;
+            this.interval = setInterval(() => {
+                cardCount++;
+                if (cardCount < this.totalItems) {
+                    this.next();
+                } else {
+                    // Completed full cycle, stop the carousel
+                    this.pause();
+                }
+            }, this.intervalTime);
+        } else {
+            // For any future carousels, continue normal looping
+            this.interval = setInterval(() => {
+                this.next();
+            }, this.intervalTime);
+        }
+    }
+    
+    pause() {
+        this.isPlaying = false;
+        if (this.interval) {
+            clearInterval(this.interval);
+            this.interval = null;
+        }
+        
+        // Pause the audio for this carousel
+        const audio = document.getElementById(`audio-${this.id}`);
+        if (audio && !audio.paused) {
+            audio.pause();
+            const btn = document.querySelector(`#carousel-${this.id} .btn-audio`);
+            if (btn) {
+                btn.textContent = '🔊 Play Audio';
+                btn.style.background = 'linear-gradient(135deg, #fd79a8, #e84393)';
+            }
+        }
+    }
+    
+    stop() {
+        this.pause();
+        this.currentIndex = 0;
+        this.updateDisplay();
+        this.updateIndicator();
+        this.updateProgress();
+        
+        // Stop and reset the audio for this carousel
+        stopAudio(this.id);
+    }
+}
+
+// Initialize carousels
+const carousels = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Create carousel instances
+    for (let i = 0; i < 3; i++) {
+        carousels[i] = new HorizontalCarousel(i);
+    }
+    
+    // Set up event delegation for all carousel controls
+    document.addEventListener('click', function(e) {
+        const carouselId = e.target.getAttribute('data-carousel-id');
+        const action = e.target.getAttribute('data-action');
+        
+        if (carouselId !== null && action) {
+            const id = parseInt(carouselId);
+            
+            switch (action) {
+                case 'start':
+                    startCarousel(id);
+                    break;
+                case 'pause':
+                    pauseCarousel(id);
+                    break;
+                case 'stop':
+                    stopCarousel(id);
+                    break;
+                case 'next':
+                    nextItem(id);
+                    break;
+                case 'prev':
+                    prevItem(id);
+                    break;
+                case 'play-audio':
+                    playAudio(id);
+                    break;
+                case 'stop-audio':
+                    stopAudio(id);
+                    break;
+            }
+        }
+    });
+    
+    // No need for window resize handler since we always show 1 card
+});
+
+// Control functions called by buttons
+function startCarousel(carouselId) {
+    if (carousels[carouselId]) {
+        carousels[carouselId].start();
+    }
+}
+
+function pauseCarousel(carouselId) {
+    if (carousels[carouselId]) {
+        carousels[carouselId].pause();
+    }
+}
+
+function stopCarousel(carouselId) {
+    if (carousels[carouselId]) {
+        carousels[carouselId].stop();
+    }
+}
+
+function nextItem(carouselId) {
+    if (carousels[carouselId]) {
+        carousels[carouselId].next();
+    }
+}
+
+function prevItem(carouselId) {
+    if (carousels[carouselId]) {
+        carousels[carouselId].prev();
+    }
+}
+
+// Audio control functions
+function playAudio(carouselId, fromCarouselStart = false) {
+    const audio = document.getElementById(`audio-${carouselId}`);
+    const btn = document.querySelector(`#carousel-${carouselId} .btn-audio`);
+    
+    if (audio) {
+        if (audio.paused) {
+            // Only pause other audio if this is a manual play (not from carousel start)
+            if (!fromCarouselStart) {
+                pauseOtherAudio(carouselId);
+                resetOtherAudioButtons(carouselId);
+            }
+            
+            audio.play().then(() => {
+                if (btn) {
+                    btn.textContent = '⏸️ Playing...';
+                    btn.style.background = 'linear-gradient(135deg, #00b894, #00a085)';
+                }
+            }).catch((error) => {
+                console.log('Audio playback failed:', error);
+                if (btn) {
+                    btn.textContent = '❌ No Audio';
+                    btn.style.background = 'linear-gradient(135deg, #636e72, #2d3436)';
+                }
+            });
+            
+            audio.onended = () => {
+                if (btn) {
+                    btn.textContent = '🔊 Play Audio';
+                    btn.style.background = 'linear-gradient(135deg, #fd79a8, #e84393)';
+                }
+            };
+            
+            audio.onerror = () => {
+                if (btn) {
+                    btn.textContent = '❌ No Audio';
+                    btn.style.background = 'linear-gradient(135deg, #636e72, #2d3436)';
+                }
+            };
+        } else {
+            audio.pause();
+            if (btn) {
+                btn.textContent = '🔊 Play Audio';
+                btn.style.background = 'linear-gradient(135deg, #fd79a8, #e84393)';
+            }
+        }
+    }
+}
+
+function stopAudio(carouselId) {
+    const audio = document.getElementById(`audio-${carouselId}`);
+    const btn = document.querySelector(`#carousel-${carouselId} .btn-audio`);
+    
+    if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+        if (btn) {
+            btn.textContent = '🔊 Play Audio';
+            btn.style.background = 'linear-gradient(135deg, #fd79a8, #e84393)';
+        }
+    }
+}
+
+function pauseAllAudio() {
+    document.querySelectorAll('audio').forEach(audio => {
+        audio.pause();
+    });
+}
+
+function pauseOtherAudio(exceptCarouselId) {
+    document.querySelectorAll('audio').forEach((audio, index) => {
+        if (index !== exceptCarouselId) {
+            audio.pause();
+        }
+    });
+}
+
+function resetAllAudioButtons() {
+    document.querySelectorAll('.btn-audio').forEach(btn => {
+        btn.textContent = '🔊 Play Audio';
+        btn.style.background = 'linear-gradient(135deg, #fd79a8, #e84393)';
+    });
+}
+
+function resetOtherAudioButtons(exceptCarouselId) {
+    document.querySelectorAll('.btn-audio').forEach((btn, index) => {
+        if (index !== exceptCarouselId) {
+            btn.textContent = '🔊 Play Audio';
+            btn.style.background = 'linear-gradient(135deg, #fd79a8, #e84393)';
+        }
+    });
+}
+
+// Global controls for the main navigation
+function showCarousel(slideIndex) {
+    const carousel = document.getElementById(`carousel-${slideIndex}`);
+    if (carousel) {
+        carousel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+function nextCarousel() {
+    carousels.forEach(carousel => carousel.next());
+}
+
+function prevCarousel() {
+    carousels.forEach(carousel => carousel.prev());
+}
+
+function toggleAutoPlay() {
+    const btn = document.getElementById('auto-play-btn');
+    const anyPlaying = carousels.some(carousel => carousel.isPlaying);
+    
+    if (anyPlaying) {
+        // Pause all carousels (this will also pause their audio)
+        carousels.forEach(carousel => carousel.pause());
+        if (btn) {
+            btn.innerHTML = '▶️ Auto Play All';
+            btn.className = 'btn btn-secondary mx-2';
+        }
+    } else {
+        // Start all carousels (this will also start their audio)
+        carousels.forEach(carousel => carousel.start());
+        if (btn) {
+            btn.innerHTML = '⏸️ Pause All';
+            btn.className = 'btn btn-danger mx-2';
+        }
+    }
+}</script>
+</script>
+{% endblock %}
